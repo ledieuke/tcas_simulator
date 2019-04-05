@@ -12,10 +12,10 @@ def main(argv):
     #Write the header
     csv_writer.writerow(
         ["CALL SIGN", "ICAO ADRESS", "VELOCITY", "BAROALTITUDE", "GEOALTITUDE", "LATITUDE", "LONGITUDE", "HEADING",
-         "VERTICAL RATE", "TCAS STATUS", "START TIME"])
+         "VERTICAL RATE", "TCAS STATUS", "IS_REAL", "START TIME"])
 
     #Open the CSV file to read original data
-    f = open("ADSB_data/" + argv[0])
+    f = open("opensky_data/" + argv[0])
     reader = csv.reader(f)
 
     #Skip the header
@@ -43,8 +43,9 @@ def main(argv):
 
         if (not (callSign in already_read) and re.search('^ *$', callSign) == None):
             tcasStatus = "TRUE"
+            isReal = "TRUE"
             already_read[callSign] = [callSign, icaoAdress, velocity, baroaltitude, geoaltitude, latitude, longitude,
-                                        heading, verticalRate, tcasStatus, startTime]
+                                        heading, verticalRate, tcasStatus, isReal, startTime]
 
         elif (callSign in already_read):
             if(re.search('^ *$', already_read[callSign][1]) != None):
@@ -83,11 +84,12 @@ def main(argv):
             heading = already_read[callSign][7]
             verticalRate = already_read[callSign][8]
             tcasStatus = already_read[callSign][9]
-            startTime = already_read[callSign][10]
+            isReal = already_read[callSign][10]
+            startTime = already_read[callSign][11]
             distance = findHorizontalDistance(float(latitude), float(longitude),  float(argv[1]),  float(argv[2]))
             if (float(geoaltitude) > 2000 and distance < 200*1852):
                 csv_writer.writerow([callSign, icaoAdress, velocity, baroaltitude, geoaltitude, latitude, longitude, heading,
-                         verticalRate, tcasStatus, startTime])
+                         verticalRate, tcasStatus, isReal, startTime])
             icaoAdress += 1
 
 
