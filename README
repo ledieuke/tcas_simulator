@@ -1,8 +1,6 @@
 Installation :
 git clone https://github.com/ledieuke/tcas_simulation.git
-mkdir opensky_data
-mkdir simulation/data
-mkdir simulation/results
+mkdir opensky_data simulation/data results
 
 Command lines to run the simulation:
 
