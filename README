@@ -1,3 +1,9 @@
+Installation :
+git clone https://github.com/ledieuke/tcas_simulation.git
+mkdir opensky_data
+mkdir simulation/data
+mkdir simulation/results
+
 Command lines to run the simulation:
 
 cd path/ADSB_TCAS_Simulation/
