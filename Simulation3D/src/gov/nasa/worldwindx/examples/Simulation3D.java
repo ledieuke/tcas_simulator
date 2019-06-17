@@ -45,7 +45,7 @@ public class Simulation3D extends ApplicationTemplate
         public ArrayList<Position> explosions = new ArrayList<Position>();
         public ArrayList<String> destroyed = new ArrayList<String>();
         public ArrayList<Integer> explosionTimes = new ArrayList<Integer>();
-        public double factor = 35;
+        public double factor = 40;
         public double height = 60*1852*0.33*factor;
         public int separation = 10;
 
@@ -165,15 +165,12 @@ public class Simulation3D extends ApplicationTemplate
                     if(a.onRa){
                         attrs.setInteriorMaterial(Material.ORANGE);
                     }
-                    else if(!a.isReal){
+                    else if(!a.isReal && a.adsbOutStatus){
                         attrs.setInteriorMaterial(Material.BLUE);
                     }
-                    else if(a.callSign.equals("JAF2YG  ")){
+                    else if(a.isReal && !a.adsbOutStatus){
                         attrs.setInteriorMaterial(Material.GRAY);
                     }                    
-                    else if(a.callSign.equals("EZY8818 ")){
-                        attrs.setInteriorMaterial(Material.GRAY);
-                    }
                     else{
                         attrs.setInteriorMaterial(Material.WHITE);
                     }
@@ -299,7 +296,7 @@ public class Simulation3D extends ApplicationTemplate
             this.getWwd().addPositionListener(new PositionListener() {
                 @Override
                 public void moved(PositionEvent event) {
-                    factor = wwd.getView().getCurrentEyePosition().getAltitude()/15000000;
+                    factor = wwd.getView().getCurrentEyePosition().getAltitude()/9000000;
 //                    factor = wwd.getView().getFieldOfView().getRadians();
 //                    factor = wwd.getView().getViewport().height/300;
                     height = 60*1852*0.33*factor;

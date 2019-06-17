@@ -5,7 +5,7 @@ from tcas import *
 
 class Aircraft:
 
-    def __init__(self,callSign,icaoAdress,velocity,baroaltitude,geoaltitude,latitude,longitude,heading,verticalRate,isReal,tcasStatus,startTime):
+    def __init__(self,callSign,icaoAdress,velocity,baroaltitude,geoaltitude,latitude,longitude,heading,verticalRate,isReal, adsbOutStatus, tcasStatus,startTime):
         self.callSign = callSign
         self.icaoAdress = icaoAdress
 
@@ -29,7 +29,12 @@ class Aircraft:
         #Vertical rate in feet per minutes
         self.verticalRate = verticalRate
 
+        #Horizontal elevator incidence
+        self.alpha = 0
+
         self.isReal = isReal
+
+        self.adsbOutStatus = adsbOutStatus
 
         #TCAS equiped
         self.tcasStatus = tcasStatus

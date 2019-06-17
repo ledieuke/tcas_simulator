@@ -1,7 +1,7 @@
 import  math as m
 import numpy as np
 
-"""Return horizontal distance in meters from one point to another point where point is defined by a latitude and a 
+"""Return horizontal distance in meters from one point to another point where point is defined by a latitude and a
 longitude"""
 def findHorizontalDistance(lat1, lon1, lat2, lon2):
     lat = (lat1+lat2)/2
@@ -15,7 +15,14 @@ def findHorizontalDistance(lat1, lon1, lat2, lon2):
 
     return horizontalDistance
 
-
+def findPositionFromHeadingAndHorizontalDistance(lat, lon, heading, distance):
+    distanceLatitudeProjected = distance*m.cos(m.radians(heading))
+    dlat = distanceLatitudeProjected / (60*1852)
+    lat1, lat2 = lat + dlat, lat - dlat
+    distanceLongitudeProjected = m.sqrt(m.pow(distance,2) - m.pow(distanceLatitudeProjected,2))
+    dlon = distanceLongitudeProjected / (60 * 1852 * m.cos(m.radians(lat)))
+    lon1, lon2 = lon + dlon, lon - dlon
+    return lat1, lon1, lat2, lon2
 
 "Return vertical distance in meters between two altitudes"
 def findVerticalDistance(alt1, alt2):
@@ -24,7 +31,7 @@ def findVerticalDistance(alt1, alt2):
     return verticalDistance
 
 
-"""Return horizontal distance in meters from one point to another point where point is defined by a latitude, 
+"""Return horizontal distance in meters from one point to another point where point is defined by a latitude,
 a longitude and an altitude"""
 def findDistance(lat1, lon1, alt1, lat2, lon2, alt2):
     horizontalDistance = findHorizontalDistance(lat1, lon1, lat2, lon2)

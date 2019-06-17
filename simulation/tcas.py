@@ -220,7 +220,7 @@ class Tcas:
         if(self.to_disp_aurl.up_advisory == CLIMB):
             self.aircraft.verticalRate = (self.to_disp_aurl.rate*60)/0.3048
             self.aircraft.onRa = True
-        if(self.to_disp_aurl.down_advisory == DOWN_ADVISORY_NONE and self.to_disp_aurl.up_advisory == UP_ADVISORY_NONE):
+        if(self.to_disp_aurl.down_advisory == DOWN_ADVISORY_NONE and self.to_disp_aurl.up_advisory == UP_ADVISORY_NONE and self.aircraft.onRa == True):
             self.aircraft.verticalRate = 0
             self.aircraft.onRa = False
 

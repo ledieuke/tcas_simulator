@@ -20,8 +20,9 @@ public class Aircraft {
     public boolean onRa;
     public boolean onCrash;
     public boolean isReal;
+    public boolean adsbOutStatus;
     
-    public Aircraft(String callSign, double time, double latitude, double longitude, double altitude, double heading, boolean onRa, boolean onCrash, boolean isReal){
+    public Aircraft(String callSign, double time, double latitude, double longitude, double altitude, double heading, boolean onRa, boolean onCrash, boolean isReal, boolean adsbOutStatus){
         this.callSign = callSign;
         this.time = time;
         this.latitude = latitude;
@@ -31,6 +32,7 @@ public class Aircraft {
         this.onRa = onRa;
         this.onCrash = onCrash;
         this.isReal = isReal;
+        this.adsbOutStatus = adsbOutStatus;
     }
     
 }

@@ -23,6 +23,12 @@ class Simulation:
         #Name of the CSV file to read in data directory
         self.csvfile = None
 
+        #Range between the two targets
+        self.range =  None
+
+        #Range rate between the two targets
+        self.range_rate = None
+
 
     """Initialisation of aircrafts present in the simulation thanks to a csv file"""
     def initialize(self,csvName):
@@ -51,15 +57,19 @@ class Simulation:
             heading = float(r[7])
             verticalRate = float(r[8])
             if(r[9] == "TRUE"):
+                adsbOutStatus = True
+            else:
+                adsbOutStatus = False
+            if(r[10] == "TRUE"):
                 tcasStatus = True
             else:
                 tcasStatus = False
-            if(r[10] == "TRUE"):
+            if(r[11] == "TRUE"):
                 isReal = True
             else:
                 isReal = False
-            startTime = float(r[11])
-            ao = Aircraft(callSign,icaoAdress,velocity,baroaltitude,geoaltitude,latitude,longitude,heading,verticalRate,isReal,tcasStatus,startTime)
+            startTime = float(r[12])
+            ao = Aircraft(callSign,icaoAdress,velocity,baroaltitude,geoaltitude,latitude,longitude,heading,verticalRate,isReal,adsbOutStatus, tcasStatus,startTime)
             if(ao.startTime < 1e-10):
                 self.aircrafts_moving.append(ao)
             else:
@@ -111,135 +121,37 @@ class Simulation:
         self.falseAdsbMoving.append(falseAdsb1)
         self.falseAdsbMoving.append(falseAdsb2)
 
-
-    """Main hacking method that uses different hacking methods"""
-    def hacking(self,a1, a2):
-        if (a1.geoaltitude == None):
-            alt1 = a1.baroaltitude
+    def hacking(self, currentTime):
+        target1 = self.aircrafts_moving[0]
+        target2 =self.aircrafts_moving[1]
+        if (self.range != None):
+            new_range = findHorizontalDistance(target1.latitude, target1.longitude, target2.latitude, target2.longitude)
+            self.range_rate = (new_range - self.range)/DELTA_T
+            self.range = new_range
         else:
-            alt1 = a1.geoaltitude
-        if (a2.geoaltitude == None):
-            alt2 = a2.baroaltitude
-        else:
-            alt2 = a2.geoaltitude
-
-        if (a1.hackingOn and a2.hackingOn):
-            if(m.fabs(alt1 - alt2) < 750):
-                # a1.hackingOn = False
-                # a2.hackingOn = False
-                for falseAdsb in self.falseAdsbMoving:
-                    if (falseAdsb.callSign == a1.callSign):
-                        self.falseAdsbMoving.remove(falseAdsb)
-                    if (falseAdsb.callSign == a2.callSign):
-                        self.falseAdsbMoving.remove(falseAdsb)
-                self.buildFunnel(a1)
-                self.buildFunnel(a2)
-        else:
-            if(50 < m.fabs(alt1 - alt2)):
-                a1.hackingOn = True
-                a2.hackingOn = True
-                if((alt1 - alt2) > 0):
-                    self.putOnSameAltitude(a1, a2)
-                else:
-                    self.putOnSameAltitude(a2, a1)
-
-
-    def hacking_global1(self):
-        if(self.aircrafts_moving != []):
-            max_altitude = self.aircrafts_moving[0].geoaltitude
-            min_altitude = self.aircrafts_moving[0].geoaltitude
-            top_aircraft_to_hack = self.aircrafts_moving[0]
-            bottom_aircraft_to_hack = self.aircrafts_moving[0]
+            self.range = findHorizontalDistance(target1.latitude, target1.longitude, target2.latitude, target2.longitude)
+            self.range_rate = -1
         for a in self.aircrafts_moving:
-            if(a.geoaltitude > max_altitude):
-                max_altitude = a.geoaltitude
-                top_aircraft_to_hack = a
-            if(a.geoaltitude < min_altitude):
-                min_altitude = a.geoaltitude
-                bottom_aircraft_to_hack = a
-        if(self.aircrafts_moving != []):
-            if(self.falseAdsbMoving != []):
-                self.falseAdsbMoving.remove(self.falseAdsbMoving[0])
-                # self.falseAdsbMoving.remove(self.falseAdsbMoving[0])
-            falseAdsb1 = Aircraft("FAKE1", "ZOOO0", top_aircraft_to_hack.velocity, top_aircraft_to_hack.baroaltitude + 300, top_aircraft_to_hack.geoaltitude + 300,top_aircraft_to_hack.latitude +
-                        (m.cos(m.radians(top_aircraft_to_hack.heading - m.pi / 4)) * 0.001) ,top_aircraft_to_hack.longitude +
-                        (m.sin(m.radians(top_aircraft_to_hack.heading - m.pi / 4)) * (0.001 / m.cos(m.radians(top_aircraft_to_hack.latitude)))),
-                        top_aircraft_to_hack.heading, -1500, False, False, top_aircraft_to_hack.startTime)
-            falseAdsb2 = Aircraft("FAKE1", "ZOOO1", 100, bottom_aircraft_to_hack.baroaltitude - 100, bottom_aircraft_to_hack.geoaltitude - 100,bottom_aircraft_to_hack.latitude +
-                        (m.cos(m.radians(bottom_aircraft_to_hack.heading - m.pi / 4)) * 2000) / (1852 * 60),bottom_aircraft_to_hack.longitude +
-                        (m.sin(m.radians(bottom_aircraft_to_hack.heading - m.pi / 4)) * (2000 / m.cos(m.radians(bottom_aircraft_to_hack.latitude)))) / (1852 * 60),
-                        (bottom_aircraft_to_hack.heading + 180) % 360, 0, False, False, bottom_aircraft_to_hack.startTime)
-            self.falseAdsbMoving.append(falseAdsb1)
-            # self.falseAdsbMoving.append(falseAdsb2)
-
-
-    def hacking_global(self, currentTime):
-        if(m.fabs(currentTime - 20) < 1e-10):
-            average_altitude = 0
-            for a in self.aircrafts_moving:
-                average_altitude += a.geoaltitude
-            average_altitude = average_altitude / len(self.aircrafts_moving)
-            self.top_altitude = average_altitude + 300
-            self.bottom_altitude = average_altitude - 300
-            for a in self.aircrafts_moving:
-                if(a.geoaltitude > self.top_altitude):
-                    falseAdsb1 = Aircraft(a.callSign + "FAKE1", a.icaoAdress + "ZOOO1", a.velocity, a.baroaltitude + 300, a.geoaltitude + 300, a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.001),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (0.001 / m.cos(m.radians(a.latitude)))), a.heading, -1500, False, False,a.startTime)
+            if(len(self.falseAdsbMoving) == 0):
+                if(a.adsbOutStatus and a.tcasStatus and ((-self.range/self.range_rate) < 206)):
+                    lat, lon = findPositionFromHeadingAndHorizontalDistance(a.latitude, a.longitude, a.heading, 20*1852)[:2]
+                    falseAdsb1 = Aircraft("AZE4533", "2563", a.velocity*2, a.baroaltitude+200, a.geoaltitude+200, lat, lon, a.heading, a.verticalRate, False, True, False, a.startTime)
+                    #falseAdsb2 = Aircraft("AZE4534", "2564", a.velocity, a.baroaltitude-2000, a.geoaltitude-2000, a.latitude+0.000001, a.longitude, a.heading, a.verticalRate, False, True, True, a.startTime)
                     self.falseAdsbMoving.append(falseAdsb1)
-                elif(a.geoaltitude < self.bottom_altitude):
-                    falseAdsb2 = Aircraft(a.callSign + "FAKE2", a.icaoAdress + "ZOOO2", a.velocity, a.baroaltitude - 300, a.geoaltitude - 300, a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.001),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (0.001 / m.cos(m.radians(a.latitude)))), a.heading, 1500, False, False,a.startTime)
-                    self.falseAdsbMoving.append(falseAdsb2)
-        if(currentTime > 20):
-            for a in self.falseAdsbMoving:
-                if(a.geoaltitude < self.top_altitude and a.geoaltitude > self.bottom_altitude and (a.callSign[:-5] == "FAKE1" or a.callSign[:-5] == "FAKE2")):
-                    self.falseAdsbMoving.remove(a)
-        if(currentTime > 30):
-            for a in self.aircrafts_moving:
-                if (m.fabs(a.verticalRate) < 1e-10 and a.dos == False):
-                    falseAdsb3 = Aircraft(a.callSign + "FAKE3", a.icaoAdress + "ZOOO3", a.velocity,
-                                          a.baroaltitude + 100, a.geoaltitude + 100,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.005),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                      0.005 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    falseAdsb4 = Aircraft(a.callSign + "FAKE4", a.icaoAdress + "ZOOO4", a.velocity,
-                                          a.baroaltitude - 100, a.geoaltitude - 100,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.005),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                  0.005 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    falseAdsb5 = Aircraft(a.callSign + "FAKE5", a.icaoAdress + "ZOOO5", a.velocity,
-                                          a.baroaltitude + 200, a.geoaltitude + 200,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.01),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                      0.01 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    falseAdsb6 = Aircraft(a.callSign + "FAKE6", a.icaoAdress + "ZOOO6", a.velocity,
-                                          a.baroaltitude - 200, a.geoaltitude - 200,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.01),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                  0.01 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    falseAdsb7 = Aircraft(a.callSign + "FAKE7", a.icaoAdress + "ZOOO7", a.velocity,
-                                          a.baroaltitude + 300, a.geoaltitude + 300,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.00001),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                  0.00001 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    falseAdsb8 = Aircraft(a.callSign + "FAKE8", a.icaoAdress + "ZOOO8", a.velocity,
-                                          a.baroaltitude - 300, a.geoaltitude - 300,
-                                          a.latitude + (m.cos(m.radians(a.heading - m.pi / 4)) * 0.00001),
-                                          a.longitude + (m.sin(m.radians(a.heading - m.pi / 4)) * (
-                                                  0.00001 / m.cos(m.radians(a.latitude)))), a.heading, 0, False,
-                                          False, a.startTime)
-                    self.falseAdsbMoving.append(falseAdsb3)
-                    self.falseAdsbMoving.append(falseAdsb4)
-                    # self.falseAdsbMoving.append(falseAdsb5)
-                    # self.falseAdsbMoving.append(falseAdsb6)
-                    self.falseAdsbMoving.append(falseAdsb7)
-                    self.falseAdsbMoving.append(falseAdsb8)
-                    a.dos = True
+                    #self.falseAdsbMoving.append(falseAdsb2)
+            if(len(self.falseAdsbMoving) == 1):
+                if(a.onRa):
+                    self.falseAdsbMoving[0].verticalRate = a.verticalRate
+                    if(self.falseAdsbMoving[0].velocity > a.velocity):
+                        self.falseAdsbMoving[0].velocity -= 1
+                    for b in self.aircrafts_moving:
+                        if (not b.adsbOutStatus and not b.tcasStatus):
+                            if (a.baroaltitude < b.baroaltitude + 100 and a.baroaltitude > b.baroaltitude - 100):
+                                self.falseAdsbMoving[0].latitude = 0
+                else:
+                    self.falseAdsbMoving[0].verticalRate = 0
+                    #if(self.falseAdsbMoving[0].velocity<1200):
+                        #self.falseAdsbMoving[0].velocity = a.velocity*2
 
 
 
@@ -315,17 +227,18 @@ class Simulation:
     def emitAdsb(self, currentTime):
         #ADS-B messages from real aircrafts
         for ao in self.aircrafts_moving:
-            #Each 5 seconds
-            if(m.fabs(currentTime%5) < DELTA_T):
-                ao.adsb.adsbEmitter.emitIdentification(ao)
-            #Each 1/2 second
-            if(m.fabs(currentTime%0.5) < DELTA_T):
-                ao.adsb.adsbEmitter.emitAirbornePosition(ao)
-                ao.adsb.adsbEmitter.emitAirborneVelocity(ao)
-            # Each 1 second
-            if (m.fabs(currentTime % 1) < DELTA_T):
-                ao.adsb.adsbEmitter.emitAircraftStatus(ao)
-        #ADS-B messages from false aircrafts
+            if(ao.adsbOutStatus):
+                #Each 5 seconds
+                if(m.fabs(currentTime%5) < DELTA_T):
+                    ao.adsb.adsbEmitter.emitIdentification(ao)
+                #Each 1/2 second
+                if(m.fabs(currentTime%0.5) < DELTA_T):
+                    ao.adsb.adsbEmitter.emitAirbornePosition(ao)
+                    ao.adsb.adsbEmitter.emitAirborneVelocity(ao)
+                # Each 1 second
+                if (m.fabs(currentTime % 1) < DELTA_T):
+                    ao.adsb.adsbEmitter.emitAircraftStatus(ao)
+            #ADS-B messages from false aircrafts
         for ao in self.falseAdsbMoving:
             #Each 5 seconds
             if(m.fabs(currentTime%5) < DELTA_T):
@@ -353,7 +266,7 @@ class Simulation:
     def initPlot(self, csvName):
         self.csvfile = open("simulation/results/" + csvName[:-4] + "_results.csv", 'w', newline='')
         csv_writer = csv.writer(self.csvfile)
-        csv_writer.writerow(["TIME", "CALL SIGN", "ICAO ADRESS", "VELOCITY", "ALTITUDE", "LATITUDE", "LONGITUDE", "HEADING", "VERTICAL RATE", "ON RA", "ON CRASH", "IS REAL"])
+        csv_writer.writerow(["TIME", "CALL SIGN", "ICAO ADRESS", "VELOCITY", "ALTITUDE", "LATITUDE", "LONGITUDE", "HEADING", "VERTICAL RATE", "ON RA", "ON CRASH", "IS REAL", "ADSB OUT STATUS"])
         self.initPlotFlg = False
 
 
@@ -373,7 +286,8 @@ class Simulation:
             onRa = str(ao.onRa)
             onCrash = str(ao.onCrash)
             isReal = str(ao.isReal)
-            csv_writer.writerow([time,callSign,icaoAdress,velocity,altitude,latitude,longitude,heading,verticalRate,onRa,onCrash,isReal])
+            adsbOutStatus = str(ao.adsbOutStatus)
+            csv_writer.writerow([time,callSign,icaoAdress,velocity,altitude,latitude,longitude,heading,verticalRate,onRa,onCrash,isReal,adsbOutStatus])
             self.csvfile.flush()
         for ao in self.falseAdsbMoving:
             time = str(currentTime)
@@ -388,7 +302,8 @@ class Simulation:
             onRa = str(ao.onRa)
             onCrash = str(ao.onCrash)
             isReal = str(ao.isReal)
-            csv_writer.writerow([time,callSign,icaoAdress,velocity,altitude,latitude,longitude,heading,verticalRate,onRa,onCrash,isReal])
+            adsbOutStatus = str(ao.adsbOutStatus)
+            csv_writer.writerow([time,callSign,icaoAdress,velocity,altitude,latitude,longitude,heading,verticalRate,onRa,onCrash,isReal,adsbOutStatus])
             self.csvfile.flush()
 
 
@@ -422,14 +337,13 @@ class Simulation:
         self.initialize(csvName)
         currentTime = 0
         while(currentTime < duration):
-            print("TIME = ", currentTime)
+            #print("TIME = ", currentTime)
             if (m.fabs(currentTime % 1) < DELTA_T):
                 self.waitingToMoving(currentTime)
-                # if(m.fabs(currentTime % 1) < DELTA_T):
-                #     self.hacking_global(currentTime)
                 self.inRange()
+            self.hacking(currentTime)
             self.emitAdsb(currentTime)
-            if (m.fabs(currentTime % 1) < DELTA_T):
+            if (m.fabs(currentTime % 0.5) < DELTA_T):
                 self.tcas(currentTime)
             if(self.initPlotFlg == True):
                 self.initPlot(csvName)
